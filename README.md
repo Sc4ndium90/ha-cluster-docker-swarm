@@ -64,7 +64,7 @@ docker swarm join --token SWMTKN-1-32urqmbj3ce02el6bbgtlefgk0mjbf17rat5btac2blpo
 ```
 
 # MicroCeph
-MicroCeph is a light version of Ceph. With some command lines, the cluster can be up in minutes and will be enough for a small size cluster. The official documentation of MicroCeph is available [here](https://canonical-microceph.readthedocs-hosted.com/stable/) It is provided by Canonical on Snap:
+MicroCeph is a light version of Ceph. With some command lines, the cluster can be up in minutes and will be enough for a small size cluster. The official documentation of MicroCeph is available [here](https://canonical-microceph.readthedocs-hosted.com/stable/). It is provided by Canonical on Snap:
 ```sh
 sudo snap install microceph
 sudo snap refresh --hold microceph
@@ -189,7 +189,7 @@ To reach certain services efficiently, we have to install `keepalived` on each n
 sudo apt update && sudo apt install -y keepalived
 ```
 
-Then create the configuration file on each node. Edit `state` to `BACKUP` on the other nodes, same for `priority` (`90` and `80` respectfully) and set a strong secret in \<SECRET>.
+Then create the configuration file on each node. Edit `state` to `BACKUP` on the other nodes, same for `priority` (`90` and `80` respectfully) and set a strong secret in `<SECRET>`.
 ```bash
 vrrp_instance VI_1 {
     state MASTER
