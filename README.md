@@ -97,4 +97,116 @@ cluster:
 ```
 If the cluster is healthy, you can create the volume 'docker' with `sudo microceph ceph fs volume create docker`
 
+## Setup CephFS mount
+To store data on the Ceph filesystem, we need to mount the storage. For that, on each node, we have to install `ceph-commons` with APT, then create the mount point `/etc/cephfs`.
+
+The mounting requires some MicroCeph configs files: we will make a symbolic link to them:
+```sh
+sudo ln -sf /var/snap/microceph/current/conf/ceph.client.admin.keyring /etc/ceph/ceph.client.admin.keyring
+sudo ln -sf /var/snap/microceph/current/conf/ceph.keyring /etc/ceph/ceph.keyring
+sudo ln -sf /var/snap/microceph/current/conf/ceph.conf /etc/ceph/ceph.conf
+```
+
+Then retrieve the secret:
+```sh
+sudo ceph auth get-key client.admin | sudo tee /etc/ceph/admin.secret
+sudo chmod 600 /etc/ceph/admin.secret
+```
+
+And edit `/etc/fstab` to add the mount point. Edit <NODE_IP_1>,<NODE_IP_2>,<NODE_IP_3> with the IP of each nodes.
+```bash
+#/etc/fstab
+<NODE_IP_1>,<NODE_IP_2>,<NODE_IP_3>:/ /mnt/cephfs ceph name=admin,secretfile=/etc/ceph/admin.secret,fs=docker,_netdev,noatime,x-systemd.automount,x-systemd.mount-timeout=30 0 0
+```
+
+To mount the folder, use `sudo mount -a`. Check the mounting point is working my making an empty file in one of the nodes and check on the other nodes if the file exists.
+
+I found out that the folder is not mount on boot everytime (for example if all the nodes went down), so to ensure that Docker have access to the directory, I've added the following configuration file in `/etc/systemd/system/docker.service.d/cephfs-dep.conf`. If the path is not mounted, this file will ask the system to mount it.
+```bash
+[Unit]
+Requires=mnt-cephfs.automount
+After=mnt-cephfs.automount
+
+Wants=mnt-cephfs.mount
+```
+
+# MariaDB Galera Cluster
+Another essential pillar for the project: a redundant database for all websites. MariaDB Galera Cluster is a great solution for this, as it use a "Master-Master" sync. All packages are included with the `mariadb-server` package.
+
+Install the server and rsync, then stop MariaDB from starting:
+```sh
+sudo apt update
+sudo apt install mariadb-server rsync -y
+sudo systemctl stop mariadb
+```
+
+Create a copy of `/etc/mysql/mariadb.conf.d/60-galera.cnf`, then delete all the content to apply this configuration. Change <NODE_IP> with the current IP of the node, <NODE_NAME> with the hostname of the machine, and <NODE_IP_1>,<NODE_IP_2>,<NODE_IP_3> with the IP of each nodes.
+```bash
+[galera]
+# Activation de Galera
+wsrep_on                 = ON
+wsrep_provider           = /usr/lib/galera/libgalera_smm.so
+
+# Liste des IP de vos 3 noeuds
+wsrep_cluster_address    = "gcomm://<NODE_IP_1>,<NODE_IP_2>,<NODE_IP_3>"
+wsrep_cluster_name       = "galera_web_cluster"
+
+# Configuration spécifique au noeud courant
+wsrep_node_address       = "<NODE_IP>"
+wsrep_node_name          = "<NODE_NAME>"
+
+# Méthode de synchronisation initiale
+wsrep_sst_method         = rsync
+
+# Optimisations recommandées pour l'hébergement web (InnoDB)
+default_storage_engine   = InnoDB
+innodb_autoinc_lock_mode = 2
+innodb_force_primary_key = 1
+binlog_format            = row
+```
+
+Then on the first node (`docker-eva`), bootstrap the cluster:
+```sh
+sudo galera_new_cluster
+sudo systemctl status mariadb
+```
+
+If running correctly on the first node, start MariaDB on the other nodes:
+```sh
+sudo systemctl start mariadb
+sudo systemctl enable mariadb
+```
+
+On any node, run `sudo mariadb` and check if the cluster is healthy with the following commands:
+```mysql
+SHOW STATUS LIKE 'wsrep_cluster_size';
+SHOW STATUS LIKE 'wsrep_cluster_status';
+```
+
+# Keepalived
+To reach certain services efficiently, we have to install `keepalived` on each node:
+```sh
+sudo apt update && sudo apt install -y keepalived
+```
+
+Then create the configuration file on each node. Edit `state` to `BACKUP` on the other nodes, same for `priority` (`90` and `80` respectfully) and set a strong secret in \<SECRET>.
+```bash
+vrrp_instance VI_1 {
+    state MASTER
+    interface ens33           
+    virtual_router_id 51
+    priority 100             
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass <SECRET> 
+    }
+    virtual_ipaddress {
+        10.1.1.10
+    }
+}
+```
+
+Finally, start keepalived with `sudo systemctl enable --now keepalived`
+
 *More step by step info coming soon*
