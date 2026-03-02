@@ -209,4 +209,83 @@ vrrp_instance VI_1 {
 
 Finally, start keepalived with `sudo systemctl enable --now keepalived`
 
+# Monitoring
+The whole cluster will be monitored with Prometheus and Grafana dashboards. The monitoring covers for the moment the MicroCeph cluster and MariaDB Galera Cluster.
+
+## Data collection
+### MicroCeph
+I'll follow the documentation provided again by Canonical on their website [here](https://canonical-microceph.readthedocs-hosted.com/stable/how-to/enable-metrics/).
+
+On one node, run the command `sudo ceph mgr module enable prometheus`. This will run a metric server for Prometheus.
+
+If needed, the port and IP configuration can be changed with the two following commands:
+```sh
+ceph config set mgr mgr/prometheus/server_addr <addr>
+ceph config set mgr mgr/prometheus/port <port>
+```
+
+### MariaDB Galera Cluster
+This part needs more setup than MicroCeph: we have to retrieve the binaries from Prometheus to scrap MySQL servers.
+
+On each node, download the latest version of mysqld_exporter from [Prometheus Github](https://github.com/prometheus/mysqld_exporter), extract and copy the binaries in `/usr/local/bin/`:
+```sh
+wget https://github.com/prometheus/mysqld_exporter/releases/download/v0.18.0/mysqld_exporter-0.18.0.linux-amd64.tar.gz
+tar xvfz mysqld_exporter-0.18.0.linux-amd64.tar.gz
+sudo cp mysqld_exporter-0.18.0.linux-amd64/mysqld_exporter /usr/local/bin/
+```
+
+Then, create a dedicated user in Ubuntu on each node for a service we will create with `sudo useradd -rs /bin/false exporter`. This will create a service account with no home folder.
+
+Create a file for MariaDB credentials
+```sh
+sudo mkdir /etc/.mysqld_exporter
+sudo nano /etc/.mysqld_exporter/.my.cnf
+```
+```bash
+# /etc/.mysqld_exporter/.my.cnf
+[client]
+user=exporter
+password=<PASSWORD>
+```
+
+Change the owner of the file to the user we have created before 
+```sh
+sudo chown -R exporter:exporter /etc/.mysqld_exporter
+sudo chmod 600 /etc/.mysqld_exporter/.my.cnf
+sudo chmod 700 /etc/.mysqld_exporter
+```
+
+On one node, create the user in MariaDB:
+```mysql
+CREATE USER 'exporter'@'localhost' IDENTIFIED BY '<password>';`  
+`GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'localhost';`  
+`FLUSH PRIVILEGES;
+```
+
+We also need a service to run the exporter. Create on each node the configuration in `/etc/systemd/system/mysqld_exporter.service`:
+```bash
+[Unit]
+Description=Prometheus MySQL Exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=exporter
+Group=exporter
+ExecStart=/usr/local/bin/mysqld_exporter \
+  --config.my-cnf=/etc/.mysqld_exporter/.my.cnf
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Apply the configurations and start the exporter:
+```sh
+sudo systemctl daemon-reload
+sudo systemctl start mysqld_exporter
+sudo systemctl enable mysqld_exporter
+```
+
+Test the endpoint on each machine if the metrics server is up with `curl http://<MariaDB-IP>:9104/metrics`
+
 *More step by step info coming soon*
