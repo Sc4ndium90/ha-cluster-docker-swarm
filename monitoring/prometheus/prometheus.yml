@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'microceph'
+    static_configs:
+      - targets: ['<NODE_1>:9283', '<NODE_2>:9283', '<NODE_3>:9283']
+  - job_name: 'mariadb-galera'
+    static_configs:
+      - targets: ['<NODE_1>:9104', '<NODE_2>:9104', '<NODE_3>:9104']
