@@ -1,0 +1,16 @@
+http:
+  middlewares:
+    crowdsec-bouncer:
+      plugin:
+        crowdsec-bouncer:
+          enabled: true
+          crowdsecLapiScheme: http
+          crowdsecLapiHost: crowdsec:8080
+          crowdsecLapiKey: "<LAPI_KEY>" # À générer plus tard
+          crowdsecMode: live
+          forwardedHeadersTrustedIPs:
+            - 10.0.0.0/8
+            - 172.16.0.0/12
+          clientTrustedIPs:
+            - 10.0.0.0/8
+            - 172.16.0.0/12
