@@ -95,7 +95,7 @@ cluster:
     usage:   743 MiB used, 449 GiB / 450 GiB avail
     pgs:     145 active+clean
 ```
-If the cluster is healthy, you can create the volume 'docker' with `sudo microceph ceph fs volume create docker`
+If the cluster is healthy, you can create the volume 'docker' with `sudo microceph.ceph fs volume create docker`
 
 ## Setup CephFS mount
 To store data on the Ceph filesystem, we need to mount the storage. For that, on each node, we have to install `ceph-commons` with APT, then create the mount point `/etc/cephfs`.
