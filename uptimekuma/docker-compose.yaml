@@ -1,0 +1,29 @@
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:2
+    restart: unless-stopped
+    volumes:
+      - /mnt/cephfs/volumes/uptimekuma/data:/app/data
+    ports:
+      # <Host Port>:<Container Port>
+      - "3001:3001"
+    networks:
+      - traefik_traefik_proxy
+    deploy:
+      replicas: 1
+      labels:
+        # 1. Autoriser Traefik à exposer ce conteneur
+        - "traefik.enable=true"
+        # 2. Définir la règle Host (le nom de domaine)
+        # Note : Utilisez des backticks ( ` ) pour entourer le nom de domaine
+        - "traefik.http.routers.uptimekuma-router.rule=Host(`status.swarm.lan`)"
+        # 3. Préciser le point d'entrée (web = port 80, websecure = 443)
+        - "traefik.http.routers.uptimekuma-router.entrypoints=websecure"
+        # 4. Indiquer le port interne du conteneur (si différent de 80)
+        - "traefik.http.services.uptimekuma-service.loadbalancer.server.port=3001"
+        - "traefik.swarm.network=traefik_traefik_proxy"
+        - "traefik.http.routers.uptimekuma-router.middlewares=crowdsec-bouncer@file"
+
+networks:
+  traefik_traefik_proxy:
+    external: true
