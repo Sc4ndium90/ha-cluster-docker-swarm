@@ -98,7 +98,7 @@ cluster:
 If the cluster is healthy, you can create the volume 'docker' with `sudo microceph.ceph fs volume create docker`
 
 ## Setup CephFS mount
-To store data on the Ceph filesystem, we need to mount the storage. For that, on each node, we have to install `ceph-commons` with APT, then create the mount point `/etc/cephfs`.
+To store data on the Ceph filesystem, we need to mount the storage. For that, on each node, we have to install `ceph-common` with APT, then create the mount point `/etc/cephfs`.
 
 The mounting requires some MicroCeph configs files: we will make a symbolic link to them:
 ```sh
