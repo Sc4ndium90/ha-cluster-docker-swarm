@@ -325,6 +325,6 @@ Once all metrics servers are up, we can launch Grafana and Prometheus server on 
 
 Edit the compose file and change the password of the Grafana admin account. In `prometheus/prometheus.yml`, set the IP of each node. Then start the compose stack with `docker compose up -d`. The server will be available on the IP of the first node and the virtual IP on port `:3000`.
 
-You can import the dashboards from the `grafana-templates` folder. They are templates from the Grafana Hub, edited to fit with the new version of Grafana. You can also use other templates if you want.
+You can import the dashboards from the `grafana-templates` folder. They are templates from the Grafana Hub, edited to fit with the new version of Grafana. You can also use other templates if you want. For host monitoring, the dashboard ID 1860 can be used (official dashboard).
 
 *More step by step info coming soon*
