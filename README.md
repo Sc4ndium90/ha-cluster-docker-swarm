@@ -70,7 +70,7 @@ sudo snap install microceph
 sudo snap refresh --hold microceph
 ```
 
-Once installed, on the first node (`docker-eva`), bootstrap the cluster with `sudo microceph bootstrap`, then check with `sudo microceph status` that the cluster is initiated. Then, create the tokens for each nodes we'll have to add :
+Once installed, on the first node (`docker-eva`), bootstrap the cluster with `sudo microceph cluster bootstrap`, then check with `sudo microceph status` that the cluster is initiated. Then, create the tokens for each nodes we'll have to add :
 ```sh
 sudo microceph cluster add docker-asuka
 sudo microceph cluster add docker-rei
