@@ -288,6 +288,38 @@ sudo systemctl enable mysqld_exporter
 
 Test the endpoint on each machine if the metrics server is up with `curl http://<MariaDB-IP>:9104/metrics`
 
+### Node Exporter (host monitoring)
+The setup is similar to mysqld_exporter. Download the binaries from the Prometheus Github (can be found [here](https://github.com/prometheus/node_exporter))
+```sh
+wget https://github.com/prometheus/node_exporter/releases/download/v1.10.2/node_exporter-1.10.2.linux-amd64.tar.gz
+tar xvfz node_exporter-1.10.2.linux-amd64.tar.gz
+sudo mv node_exporter-1.10.2.linux-amd64/node_exporter /usr/local/bin/
+```
+
+Add the service in systemd in `sudo nano /etc/systemd/system/node_exporter.service`:
+```bash
+[Unit]
+Description=Node Exporter
+After=network.target
+
+[Service]
+User=exporter
+Group=exporter
+Type=simple
+ExecStart=/usr/local/bin/node_exporter
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Create the user and start the service:
+```sh
+sudo useradd -rs /bin/false node_exporter
+sudo systemctl daemon-reload
+sudo systemctl enable --now node_exporter
+```
+Test the endpoint on each machine if the metrics server is up with `curl http://<Node-IP>:9100/metrics`
+
 ## Grafana & Prometheus
 Once all metrics servers are up, we can launch Grafana and Prometheus server on the first node (`docker-eva`). Clone this repository and move the folder `monitoring` in `/opt/docker/monitoring` (you need to add read/write access to this folder for your user).
 
