@@ -288,4 +288,11 @@ sudo systemctl enable mysqld_exporter
 
 Test the endpoint on each machine if the metrics server is up with `curl http://<MariaDB-IP>:9104/metrics`
 
+## Grafana & Prometheus
+Once all metrics servers are up, we can launch Grafana and Prometheus server on the first node (`docker-eva`). Clone this repository and move the folder `monitoring` in `/opt/docker/monitoring` (you need to add read/write access to this folder for your user).
+
+Edit the compose file and change the password of the Grafana admin account. In `prometheus/prometheus.yml`, set the IP of each node. Then start the compose stack with `docker compose up -d`. The server will be available on the IP of the first node and the virtual IP on port `:3000`.
+
+You can import the dashboards from the `grafana-templates` folder. They are templates from the Grafana Hub, edited to fit with the new version of Grafana. You can also use other templates if you want.
+
 *More step by step info coming soon*
