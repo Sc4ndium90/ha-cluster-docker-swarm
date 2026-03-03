@@ -27,6 +27,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro   # Swarm API socket
       - ./certs:/certs:ro
       - ./dynamic:/dynamic:ro
+      - traefik_logs:/var/log/traefik
 
     # Traefik Static configuration via command-line arguments
     command:
@@ -44,6 +45,7 @@ services:
 
       # Attach dynamic TLS file
       - "--providers.file.filename=/dynamic/tls.yaml"
+      - "--providers.file.filename=/dynamic/crowdsec.yaml"
 
       # Providers
 
@@ -67,6 +69,14 @@ services:
       - "--log.level=INFO" # Set the Log Level e.g INFO, DEBUG
       - "--accesslog=true" # Enable Access Logs
       - "--metrics.prometheus=true"  # Enable Prometheus
+
+      # Crowdsec
+      - "--experimental.plugins.crowdsec-bouncer.modulename=github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin"
+      - "--experimental.plugins.crowdsec-bouncer.version=v1.5.1"
+
+      - "--accesslog=true"
+      - "--accesslog.filepath=/var/log/traefik/access.log"
+      - "--accesslog.format=json"
 
     deploy:
       mode: replicated
@@ -114,8 +124,30 @@ services:
         # Expose the whoami port number to Traefik
         - traefik.http.services.whoami.loadbalancer.server.port=80
 
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    environment:
+      - GID=1000
+      - COLLECTIONS=crowdsecurity/traefik crowdsecurity/http-cve
+    volumes:
+      - ./crowdsec/config:/etc/crowdsec
+      - ./crowdsec/data:/var/lib/crowdsec/data
+      - traefik_logs:/var/log/traefik:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik_proxy
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
 # Define the overlay network for Swarm
 networks:
   traefik_proxy:
     driver: overlay
     attachable: true
+
+volumes:
+  traefik_logs:
