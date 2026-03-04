@@ -234,7 +234,7 @@ tar xvfz mysqld_exporter-0.18.0.linux-amd64.tar.gz
 sudo cp mysqld_exporter-0.18.0.linux-amd64/mysqld_exporter /usr/local/bin/
 ```
 
-Then, create a dedicated user in Ubuntu on each node for a service we will create with `sudo useradd -rs /bin/false exporter`. This will create a service account with no home folder.
+Then, create a dedicated user in Ubuntu on each node for a service we will create with `sudo useradd -rs /bin/false mysqld_exporter`. This will create a service account with no home folder.
 
 Create a file for MariaDB credentials
 ```sh
@@ -250,7 +250,7 @@ password=<PASSWORD>
 
 Change the owner of the file to the user we have created before 
 ```sh
-sudo chown -R exporter:exporter /etc/.mysqld_exporter
+sudo chown -R mysqld_exporter:mysqld_exporter /etc/.mysqld_exporter
 sudo chmod 600 /etc/.mysqld_exporter/.my.cnf
 sudo chmod 700 /etc/.mysqld_exporter
 ```
@@ -270,8 +270,8 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-User=exporter
-Group=exporter
+User=mysqld_exporter
+Group=mysqld_exporter
 ExecStart=/usr/local/bin/mysqld_exporter \
   --config.my-cnf=/etc/.mysqld_exporter/.my.cnf
 
