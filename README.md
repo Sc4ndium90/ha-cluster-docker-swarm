@@ -328,4 +328,10 @@ Edit the compose file and change the password of the Grafana admin account. In `
 
 You can import the dashboards from the `grafana-templates` folder. They are templates from the Grafana Hub, edited to fit with the new version of Grafana. You can also use other templates if you want. For host monitoring, the dashboard ID 1860 can be used (official dashboard).
 
+# Traefik & Crowdsec
+This section will be a bit difficult to setup as my environment will be behind Cloudflare at the end. Initialy, I wanted to use Clouflared tunnel to limit the exposure, but it turns out to be quite a pain to setup, between the certificates, the containers not running as expetected. Plus, not a lot of users done this step as I could have find, mostly with the v1 or v2 of Traefik, which is quite old considering Traefik is in v3.6.9 at the time I write this documentation. I also wanted to limit the use of static configurations and use the docker-compose file to set all the settings I would use, however I have some services not running directly in the environement where Traefik is, and not gonna lie I was kinda lost with that much labels.
+
+
+
+
 *More step by step info coming soon*
