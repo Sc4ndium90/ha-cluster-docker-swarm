@@ -8,7 +8,8 @@ I currently have a 5 nodes Proxmox cluster with no high-availability at all leve
 Before breaking all my setup and loose time with my current hardware, I'll virtualize the project in VMWare Workstation 25H2 on my desktop to represent realistically. The nodes I'll use for this project are Dell Wyse 5070 with a 4 core Intel Pentium CPU, 16GB of DDR4 memory and a 256GB SSD. My desktop doesn't have that much RAM and CPU, so I'll stick with 2vCPU, 8GB of memory and 256GB of storage running Ubuntu 24.04 LTS. They will be called `docker-eva`, `docker-asuka` and `docker-rei`. To represent the homelab network, I'll use a MikroTik CHR router, with the first interface on the NAT network of VMWare, and a LAN Segment network on the second interface. The LAN network on the lab will be the network subnet `10.1.1.0/24`, with the gateway on `10.1.1.1`, set the DNS server on `1.1.1.1`. I've also set a Virtual IP later in this documentation on `10.1.1.10` for all three nodes with keepalived. 
 
 Here a quick layout of the environment :
-*Coming soon*
+<img width="945" height="405" alt="image" src="https://github.com/user-attachments/assets/907e859f-ac95-4c1a-8384-516b72a31564" />
+
 
 To be able to copy-paste configurations and run commands, I'll forward in the firewall the SSH port for each node (`docker-eva` will be port 22 to 22, `docker-asuka` port 222 to 22, and `docker-rei` port 2222 to 22).
 
