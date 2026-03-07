@@ -6,6 +6,9 @@ services:
     # Connect to the 'traefik_proxy' overlay network for inter-container communication across nodes
       - traefik_proxy
 
+    environment:
+      - CF_DNS_API_TOKEN=<CF_DNS_TOKEN>
+
     ports:
         # Expose Traefik's entry points to the Swarm
         # Swarm requires the long syntax for ports.
@@ -44,8 +47,8 @@ services:
       - "--entrypoints.websecure.http.tls=true"
 
       # Attach dynamic TLS file
-      - "--providers.file.filename=/dynamic/tls.yaml"
-      - "--providers.file.filename=/dynamic/crowdsec.yaml"
+      #- "--providers.file.filename=/dynamic/tls.yaml" # Attach it if you want to use self-signed certificate
+      - "--providers.file.filename=/dynamic/config.yaml"
 
       # Providers
 
@@ -59,7 +62,7 @@ services:
       - "--providers.swarm.exposedbydefault=false"
 
       # Specify the default network for Traefik to connect to services
-      - "--providers.swarm.network=traefik_traefik_proxy"
+      - "--providers.swarm.network=traefik_proxy"
 
       # API & Dashboard
       - "--api.dashboard=true" # Enable the dashboard
@@ -70,13 +73,30 @@ services:
       - "--accesslog=true" # Enable Access Logs
       - "--metrics.prometheus=true"  # Enable Prometheus
 
-      # Crowdsec
+      # Crowdsec / crowdsec-bouncer@file
       - "--experimental.plugins.crowdsec-bouncer.modulename=github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin"
       - "--experimental.plugins.crowdsec-bouncer.version=v1.5.1"
 
+      # Cloudflare Warp - restore real IP for Crowdsec / cloudflarewarp@file
+      - "--experimental.plugins.cloudflarewarp.modulename=github.com/PseudoResonance/cloudflarewarp"
+      - "--experimental.plugins.cloudflarewarp.version=v1.4.2"
+
+      # Logging (for Crowdsec) - using JSON log format doesn't work for Crowdsec.
       - "--accesslog=true"
       - "--accesslog.filepath=/var/log/traefik/access.log"
-      - "--accesslog.format=json"
+      - "--accesslog.format=common"
+      - "--accesslog.fields.headers.names.X-Real-Ip=keep"
+      - "--accesslog.fields.headers.names.X-Forwarded-For=keep"
+
+      # DNS Challenge (Cloudflare)
+      - "--certificatesresolvers.mycloudflare.acme.dnschallenge=true"
+      - "--certificatesresolvers.mycloudflare.acme.dnschallenge.provider=cloudflare"
+      - "--certificatesresolvers.mycloudflare.acme.email=<EMAIL>"
+      - "--certificatesresolvers.mycloudflare.acme.storage=/acme.json"
+      # Optionnal : Force CF DNS
+      - "--certificatesresolvers.mycloudflare.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53"
+      # Optionnal : If you are still in staging, use the staging server to avoid ratelimits.
+      - "--certificatesresolvers.mycloudflare.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
 
     deploy:
       mode: replicated
@@ -94,35 +114,17 @@ services:
         - "traefik.enable=true"
 
         # Dashboard router
-        - "traefik.http.routers.dashboard.rule=Host(`dashboard.swarm.lan`)"
+        - "traefik.http.routers.dashboard.rule=Host(`dashboard.example.com`)"
         - "traefik.http.routers.dashboard.entrypoints=websecure"
         - "traefik.http.routers.dashboard.service=api@internal"
         - "traefik.http.routers.dashboard.tls=true"
 
         # Basic‑auth middleware
         - "traefik.http.middlewares.dashboard-auth.basicauth.users=<PASTE_HASH_HERE>"
-        - "traefik.http.routers.dashboard.middlewares=dashboard-auth@swarm"
+        - "traefik.http.routers.dashboard.middlewares=cloudflarewarp@file,crowdsec-bouncer@file,dashboard-auth@swarm"
 
         # Service hint
         - "traefik.http.services.traefik.loadbalancer.server.port=8080"
-
-  # Deploy the Whoami application
-  whoami:
-    image: traefik/whoami
-    networks:
-      - traefik_proxy
-    deploy:
-      labels:
-        # Enable Service discovery for Traefik
-        - "traefik.enable=true"
-        # Define the WHoami router rule
-        - "traefik.http.routers.whoami.rule=Host(`whoami.swarm.lan`)"
-        # Expose Whoami on the HTTPS entrypoint
-        - "traefik.http.routers.whoami.entrypoints=websecure"
-        # Enable TLS
-        - "traefik.http.routers.whoami.tls=true"
-        # Expose the whoami port number to Traefik
-        - traefik.http.services.whoami.loadbalancer.server.port=80
 
   crowdsec:
     image: crowdsecurity/crowdsec:latest
@@ -146,8 +148,7 @@ services:
 # Define the overlay network for Swarm
 networks:
   traefik_proxy:
-    driver: overlay
-    attachable: true
+    external: true
 
 volumes:
   traefik_logs:
