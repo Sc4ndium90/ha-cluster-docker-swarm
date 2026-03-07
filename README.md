@@ -331,7 +331,19 @@ You can import the dashboards from the `grafana-templates` folder. They are temp
 # Traefik & Crowdsec
 This section will be a bit difficult to setup as my environment will be behind Cloudflare at the end. Initialy, I wanted to use Clouflared tunnel to limit the exposure, but it turns out to be quite a pain to setup, between the certificates, the containers not running as expetected. Plus, not a lot of users done this step as I could have find, mostly with the v1 or v2 of Traefik, which is quite old considering Traefik is in v3.6.9 at the time I write this documentation. I also wanted to limit the use of static configurations and use the docker-compose file to set all the settings I would use, however I have some services not running directly in the environement where Traefik is, and not gonna lie I was kinda lost with that much labels.
 
+Clone this repository and move the folder `traefik` in `/opt/docker/traefik` (you need to add read/write access to this folder for your user). You need to change some settings to start the stack for the first time:
+1. In the `docker-compose.yml`, if you don't use Cloudflare for the certificates or the domains, remove the environment dedicated to the API key `CF_DNS_API_TOKEN`, and you can enable the `dynamic/tls.yml` config and generate a local self-signe certificate. If you use Cloudflare, then generate an API key following the [Cloudflare documentation](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/) and paste it in a .env file (recommanded) or in the `docker-compose.yml` file (not recommanded). Also set the email address and switch to staging server to avoid ratelimit issues during troubleshooting.
+2. Still in the same file, change the domain name for the dashboard. If you want it to stay local, you have to use a `.lan` TLD, as `.localhost` will not redirect to the proxy but to your own network. Warning: I was able to make it work once, but when I switched to Cloudflare, I could not access it the the `.lan`. I've moved it to Cloudflare with a strong password access.
+3. Create an overlay network for your cluster with `docker network create -d overlay --attachable traefik_proxy` on the first node.
 
+To run the compose file, we have to start a stack deployment (even though it stays on the master):
+```sh
+docker stack deploy -c docker-compose.yml traefik
+```
 
+Once the stack is up, search for the CrowdSec container ID, and then generate the token for the Crowdsec Bouncer plugin, and paste the token in `dynamic/config.yml`:
+```sh
+docker exec -it <CONTAINER_ID> cscli bouncers add traefik-bouncer
+```
 
-*More step by step info coming soon*
+Restart the stack to ensure configs are loaded correctly: Traefik and Crowdsec should be ready.
